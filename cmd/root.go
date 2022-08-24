@@ -19,13 +19,9 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ck-ghost",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "CK-ghost",
+	Long: `CK-ghost is sql-Actuator of clickhouse, that only create Materialized view.
+And the source table is required to have fixed fields.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -68,5 +64,6 @@ func init() {
 	rootCmd.Flags().StringVarP(&config.DBOption, "dboption", "o", "compress=1&use_client_time_zone=true",
 		"clickhouse dsn option")
 	rootCmd.Flags().StringSliceVarP(&config.Appids, "appid", "a", []string{}, "project that need to add materialized view")
+	rootCmd.Flags().StringVarP(&config.TableName, "tablename", "t", ".*", "table name, which can be a regular expression, anyhow, tables with _local suffixes are not processed ")
 
 }

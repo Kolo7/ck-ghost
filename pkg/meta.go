@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/dlclark/regexp2"
+	"github.com/pkg/errors"
 	"regexp"
 	"strings"
 	"sync"
@@ -42,7 +43,10 @@ func Run(c context.Context) error {
 	}
 
 	mvmap := existTB(mv)
-	tbs = filter(tbs, mvmap)
+	tbs, err = filter(tbs, mvmap)
+	if err != nil {
+		return err
+	}
 
 	cluster, err := db.ClusterList(c)
 	if err != nil {
@@ -84,14 +88,18 @@ func createMaterialized(c context.Context, option Option) error {
 	return nil
 }
 
-func filter(tbs []*db.Table, mvMap map[string]struct{}) []*db.Table {
+func filter(tbs []*db.Table, mvMap map[string]struct{}) ([]*db.Table, error) {
 	newTbs := make([]*db.Table, 0)
+	tableRep, err := regexp.Compile(config.TableName)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("parameter must conform to regular expression, current tablename: %s", config.TableName))
+	}
 	for _, e := range tbs {
 		if !strings.HasPrefix(e.Database, "app_") ||
 			!strings.HasPrefix(e.Name, "log_") ||
-			!strings.HasSuffix(e.Name, "_local") ||
+			strings.HasSuffix(e.Name, "_local") ||
 			e.IsTemporary ||
-			strings.ToLower(e.Engine) != "replicatedmergetree" {
+			strings.ToLower(e.Engine) == "replicatedmergetree" {
 			continue
 		}
 		_, appExit := config.AppidMap[e.Database]
@@ -103,10 +111,13 @@ func filter(tbs []*db.Table, mvMap map[string]struct{}) []*db.Table {
 		if _, exist := mvMap[e.Name]; exist {
 			continue
 		}
+		match := tableRep.MatchString(e.Name)
+		if !match {
+			continue
+		}
 		newTbs = append(newTbs, e)
 	}
-
-	return newTbs
+	return newTbs, nil
 }
 
 func existTB(tables []*db.Table) map[string]struct{} {

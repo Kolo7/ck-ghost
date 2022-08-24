@@ -7,6 +7,7 @@ var (
 	Password        string
 	DBOption        string
 	Appids          []string
+	TableName       string
 	AppidMap        map[string]struct{}
 	InteractionMode bool
 
